@@ -16,6 +16,7 @@ type Options = {
   jsName: string
   outputFile: string
   globals: Record<string, string>
+  exportConditions?: string[]
 }
 
 const umdDevPlugin = (type: 'development' | 'production') =>
@@ -56,6 +57,7 @@ export default function rollup(options: RollupOptions): RollupOptions[] {
       outputFile: 'query-broadcast-client-experimental',
       entryFile: 'src/index.ts',
       globals: {},
+      exportConditions: ['browser'],
     }),
     ...buildConfigs({
       name: 'query-sync-storage-persister',
@@ -118,6 +120,7 @@ function buildConfigs(opts: {
   outputFile: string
   entryFile: string
   globals: Record<string, string>
+  exportConditions?: string[]
 }): RollupOptions[] {
   const input = path.resolve(opts.packageDir, opts.entryFile)
   const externalDeps = Object.keys(opts.globals)
@@ -133,12 +136,13 @@ function buildConfigs(opts: {
     external,
     banner,
     globals: opts.globals,
+    exportConditions: opts.exportConditions,
   }
 
   return [esm(options), cjs(options), umdDev(options), umdProd(options)]
 }
 
-function esm({ input, packageDir, external, banner }: Options): RollupOptions {
+function esm({ input, packageDir, external, banner, exportConditions }: Options): RollupOptions {
   return {
     // ESM
     external,
@@ -152,12 +156,12 @@ function esm({ input, packageDir, external, banner }: Options): RollupOptions {
     plugins: [
       svelte(),
       babelPlugin,
-      nodeResolve({ extensions: ['.ts', '.tsx'] }),
+      nodeResolve({ extensions: ['.ts', '.tsx'], exportConditions }),
     ],
   }
 }
 
-function cjs({ input, external, packageDir, banner }: Options): RollupOptions {
+function cjs({ input, external, packageDir, banner, exportConditions }: Options): RollupOptions {
   return {
     // CJS
     external,
@@ -173,7 +177,7 @@ function cjs({ input, external, packageDir, banner }: Options): RollupOptions {
     plugins: [
       svelte(),
       babelPlugin,
-      nodeResolve({ extensions: ['.ts', '.tsx'] }),
+      nodeResolve({ extensions: ['.ts', '.tsx'], exportConditions }),
     ],
   }
 }
@@ -186,6 +190,7 @@ function umdDev({
   globals,
   banner,
   jsName,
+  exportConditions,
 }: Options): RollupOptions {
   return {
     // UMD (Dev)
@@ -202,7 +207,7 @@ function umdDev({
     plugins: [
       svelte(),
       babelPlugin,
-      nodeResolve({ extensions: ['.ts', '.tsx'] }),
+      nodeResolve({ extensions: ['.ts', '.tsx'], exportConditions }),
       umdDevPlugin('development'),
     ],
   }
@@ -216,6 +221,7 @@ function umdProd({
   globals,
   banner,
   jsName,
+  exportConditions,
 }: Options): RollupOptions {
   return {
     // UMD (Prod)
@@ -232,7 +238,7 @@ function umdProd({
     plugins: [
       svelte(),
       babelPlugin,
-      nodeResolve({ extensions: ['.ts', '.tsx'] }),
+      nodeResolve({ extensions: ['.ts', '.tsx'], exportConditions }),
       umdDevPlugin('production'),
       terser({
         mangle: true,
